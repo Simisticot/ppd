@@ -21,14 +21,14 @@ void tri_parallele(int n, int k, float** blocs);
 
 int main(int argc, char const *argv[])
 {
-	clock_t start;
-	clock_t end;
+	double start;
+	double end;
 	double duree;
-	start = clock();
+	start = omp_get_wtime();
 
 	srand(time(NULL));
 
-	omp_set_num_threads(1);
+	omp_set_num_threads(4);
 
 	int k, n, i, j;
 
@@ -45,8 +45,18 @@ int main(int argc, char const *argv[])
 		blocs[i] = generator(k);
 	}
 
+	// printf("avant\n");
+	// for (i = 0; i < n; i++)
+	// {
+	// 	for (j = 0; j < k; j++){
+	// 		printf("%d : %f\n",j,blocs[i][j]);
+	// 	}
+	// 	printf("\n");
+	// }
+
 	tri_parallele(n,k,blocs);
 
+	// printf("après\n");
 	// for (i = 0; i < n; i++)
 	// {
 	// 	for (j = 0; j < k; j++){
@@ -61,8 +71,8 @@ int main(int argc, char const *argv[])
 	}
 	free(blocs);
 
-	end = clock();
-	duree = (end - start) / (double)(CLOCKS_PER_SEC);
+	end = omp_get_wtime();
+	duree = (end - start);
 
 	printf("%lf\n",duree );
 	
@@ -92,23 +102,12 @@ void tri_merge(int k, float* Bin1, float* Bin2){
 
 	tampon = (float*)malloc(2*k*sizeof(float));
 
-	// for(i = 0, j = 0, l = 0; j < k && l < k; i++){
-	// 	if(Bin1[j] <= Bin2[l])
-	// 		tampon[i] = Bin1[j++];
-	// 	else
-	// 		tampon[i] = Bin2[l++];
-	// }
-
-	i = 0;
-	j = 0;
-	l = 0;
-
-		while(j < k && l < k){
-			if(Bin1[j] <= Bin2[l])
-				tampon[i] = Bin1[j++];
-			else
-				tampon[i] = Bin2[l++];
-		}
+	 for(i = 0, j = 0, l = 0; j < k && l < k; i++){
+	 	if(Bin1[j] <= Bin2[l])
+	 		tampon[i] = Bin1[j++];
+	 	else
+	 		tampon[i] = Bin2[l++];
+	 }
 
 	while(j < k){
 		tampon[i++] = Bin1[j++];
@@ -166,7 +165,6 @@ void sort(int low, int high, float* a, float*b, int max) {
    
    if(low < high) {
       mid = (low + high) / 2;
-
       sort(low, mid, a, b, max);
       sort(mid+1, high, a, b, max);
       merging(low, mid, high, a, b, max);
@@ -177,6 +175,7 @@ void sort(int low, int high, float* a, float*b, int max) {
 
 void tri_parallele(int n, int k, float** blocs){
 	int  i, j, l, b1, b2, min, max;
+	#pragma omp parallel for schedule(static)
 	for (i = 0; i < n; ++i)
 	{
 		tri(blocs[i], k);
@@ -185,6 +184,7 @@ void tri_parallele(int n, int k, float** blocs){
 	for (j = 0; j < n; j++)
 	{
 		l = 1+(j%2);
+		#pragma omp parallel for schedule(static)
 		for (i = 0; i < n/2; i++)
 		{
 			b1 = (l+2*i)%n;
